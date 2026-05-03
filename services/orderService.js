@@ -2,8 +2,18 @@
 // 訂單服務
 // ========================================
 
-const { createOrder, fetchOrders, updateOrderStatus, deleteOrder } = require('../api');
-const { validateOrderUser, formatDate, getDaysAgo, formatCurrency } = require('../utils');
+const {
+  createOrder,
+  fetchOrders,
+  updateOrderStatus,
+  deleteOrder,
+} = require('../api');
+const {
+  validateOrderUser,
+  formatDate,
+  getDaysAgo,
+  formatCurrency,
+} = require('../utils');
 
 /**
  * 建立新訂單
@@ -15,6 +25,20 @@ async function placeOrder(userInfo) {
   // 提示：先用 utils validateOrderUser() 驗證使用者資料，驗證失敗時回傳 { success: false, errors: [...] }
   // 驗證通過後，呼叫 createOrder() 建立訂單
   // 回傳格式：{ success: true, data: ... } / { success: false, errors: [...] }
+  const orderUser = validateOrderUser(userInfo);
+  if (!orderUser.isValid) {
+    return { success: false, errors: orderUser.errors };
+  }
+  try {
+    const data = await createOrder(userInfo);
+    return { success: true, data };
+  } catch (error) {
+    console.error(error);
+    return {
+      success: false,
+      errors: [error && error.message ? error.message : String(error)],
+    };
+  }
 }
 
 /**
@@ -24,6 +48,13 @@ async function placeOrder(userInfo) {
 async function getOrders() {
   // 請實作此函式
   // 提示：呼叫 fetchOrders() 取得訂單陣列並回傳
+  try {
+    const data = await fetchOrders();
+    return data;
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
 }
 
 /**
@@ -33,6 +64,13 @@ async function getOrders() {
 async function getUnpaidOrders() {
   // 請實作此函式
   // 提示：呼叫 fetchOrders() 後，篩選出 paid 為 false 的訂單
+  try {
+    const data = await fetchOrders();
+    return data.filter((item) => !item.paid);
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
 }
 
 /**
@@ -42,6 +80,13 @@ async function getUnpaidOrders() {
 async function getPaidOrders() {
   // 請實作此函式
   // 提示：呼叫 fetchOrders() 後，篩選出 paid 為 true 的訂單
+  try {
+    const data = await fetchOrders();
+    return data.filter((item) => item.paid);
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
 }
 
 /**
@@ -54,6 +99,13 @@ async function updatePaymentStatus(orderId, isPaid) {
   // 請實作此函式
   // 提示：呼叫 updateOrderStatus()
   // 回傳格式：{ success: true, data: ... } / { success: false, error: ... }
+  try {
+    const data = await updateOrderStatus(orderId, isPaid);
+    return { success: true, data };
+  } catch (error) {
+    console.error(error);
+    return { success: false, error };
+  }
 }
 
 /**
@@ -65,6 +117,13 @@ async function removeOrder(orderId) {
   // 請實作此函式
   // 提示：呼叫 deleteOrder()
   // 回傳格式：{ success: true, data: ... } / { success: false, error: ... }
+  try {
+    const data = await deleteOrder(orderId);
+    return { success: true, data };
+  } catch (error) {
+    console.error(error);
+    return { success: false, error };
+  }
 }
 
 /**
@@ -84,7 +143,19 @@ async function removeOrder(orderId) {
  * - daysAgo: 距離今天為幾天前，使用 utils getDaysAgo()
  */
 function formatOrder(order) {
+  const { id, user, products, total, paid, createdAt } = order;
   // 請實作此函式
+  return {
+    id,
+    user,
+    products,
+    total,
+    totalFormatted: formatCurrency(total),
+    paid,
+    paidText: paid ? '已付款' : '未付款',
+    createdAt: formatDate(createdAt),
+    daysAgo: getDaysAgo(createdAt),
+  };
 }
 
 /**
@@ -113,6 +184,37 @@ function displayOrders(orders) {
   // 商品明細：
   //   - 產品名稱 x 2（產品數量）
   // ========================================
+  if (!Array.isArray(orders) || orders.length === 0) {
+    console.log('沒有訂單');
+    return;
+  }
+  console.log('訂單列表：');
+  orders.forEach((order, idx) => {
+    const item = formatOrder(order);
+    console.log('========================================');
+    console.log(`訂單 ${idx + 1}`);
+    console.log('----------------------------------------');
+    console.log(`訂單編號：${item.id}`);
+    console.log(`顧客姓名：${(item.user && item.user.name) || '匿名'}`);
+    console.log(`聯絡電話：${(item.user && item.user.tel) || '無'}`);
+    console.log(`寄送地址：${(item.user && item.user.address) || '無'}`);
+    console.log(`付款方式：${(item.user && item.user.payment) || '未提供'}`);
+    console.log(`訂單金額：${item.totalFormatted}`);
+    console.log(`付款狀態：${item.paidText}`);
+    console.log(`建立時間：${item.createdAt} (${item.daysAgo})`);
+    console.log('----------------------------------------');
+    console.log('商品明細：');
+    if (Array.isArray(item.products) && item.products.length > 0) {
+      item.products.forEach((p) => {
+        const title = p.title || p.name || '無名稱';
+        const qty = p.quantity ?? p.qty ?? p.count ?? 1;
+        console.log(`  - ${title} x ${qty}（產品數量）`);
+      });
+    } else {
+      console.log('  無商品');
+    }
+  });
+  console.log('========================================');
 }
 
 module.exports = {
@@ -123,5 +225,5 @@ module.exports = {
   updatePaymentStatus,
   removeOrder,
   formatOrder,
-  displayOrders
+  displayOrders,
 };
