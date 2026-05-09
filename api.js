@@ -172,7 +172,7 @@ async function updateOrderStatus(orderId, isPaid) {
  */
 async function deleteOrder(orderId) {
   // 請實作此函式
-  const response = await adminApi.delete(`/orders`, orderId);
+  const response = await adminApi.delete(`/orders/${orderId}`);
   return response.data;
 }
 

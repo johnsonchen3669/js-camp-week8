@@ -151,7 +151,7 @@ function displayCart(cart) {
   // ----------------------------------------
   // 商品總計：NT$ 1,600
   // 折扣後金額：NT$ 1,600
-  if (!cart?.carts || cart?.carts.length) {
+  if (!cart?.carts || cart?.carts.length === 0) {
     console.log('購物車是空的');
   }
   cart.carts.forEach((item, idx) => {
